@@ -116,10 +116,6 @@
                     document.getElementById('results').innerHTML = `<p style="color: red">${data.error}</p>`;
                 } else {
                     // Handle successful response
-                    document.getElementById('results').innerHTML = `
-                        <h3>Analysis Results:</h3>
-                        <pre>${JSON.stringify(data, null, 2)}</pre>
-                    `;
                     displayElevationProfile(data);
                     displaySplits(data.splits);
                 }
