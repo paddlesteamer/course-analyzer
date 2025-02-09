@@ -174,7 +174,7 @@
                     xValue: midDistance,
                     yValue: midElevation,
                     yAdjust:-10, // Adjust label position above the line
-                    content: `${split.average_grade}%`,
+                    content: ['Avg: ' + split.average_grade.toFixed(0) + '%', 'Max: ' + split.max_grade.toFixed(0) + '%'],
                     backgroundColor: 'rgba(255, 255, 255, 0.8)',
                     borderRadius: 4,
                     padding: 4,
@@ -259,6 +259,8 @@
                     (${split.start_elevation.toFixed(1)} m - ${split.end_elevation.toFixed(1)} m)
                     <br>
                     Average Grade: ${split.average_grade}%
+                    <br>
+                    Maximum Grade: ${split.max_grade}%
                 `;
                 splitsContainer.appendChild(splitDiv);
             });

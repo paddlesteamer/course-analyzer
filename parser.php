@@ -183,7 +183,21 @@ function parseGPX($gpxFile) {
     
     return json_encode([
         'status' => 'success',
-        'splits' => array_map(function($split) {
+        'splits' => array_map(function($split) use ($trackpoints) {
+            // Find all points within this split
+            $splitPoints = array_filter($trackpoints, function($point) use ($split) {
+                return $point['distance'] >= $split['start_distance'] && 
+                       $point['distance'] <= $split['end_distance'];
+            });
+            
+            // Calculate maximum grade
+            $maxGrade = 0;
+            foreach ($splitPoints as $point) {
+                if (abs($point['grade']) > abs($maxGrade)) {
+                    $maxGrade = $point['grade'];
+                }
+            }
+            
             return [
                 'type' => $split['type'],
                 'start_distance' => round($split['start_distance'], 2),
@@ -192,7 +206,8 @@ function parseGPX($gpxFile) {
                 'end_elevation' => round($split['end_elevation'], 2),
                 'elevation_change' => round($split['total_elevation_change'], 2),
                 'distance' => round($split['total_distance'], 2),
-                'average_grade' => $split['average_grade']
+                'average_grade' => $split['average_grade'],
+                'max_grade' => round($maxGrade, 2)
             ];
         }, $splits),
         'trackpoints' => $trackpoints
