@@ -234,6 +234,9 @@
                                         `Elevation: ${point.y}m`,
                                         `Grade: ${point.grade}%`
                                     ];
+                                },
+                                title: function(context) {
+                                    return context[0].raw.x + ' km';
                                 }
                             }
                         }
