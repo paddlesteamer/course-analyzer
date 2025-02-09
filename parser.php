@@ -199,25 +199,59 @@ function parseGPX($gpxFile) {
     ]);
 }
 
-// Handle file upload
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['gpxFile'])) {
-    $uploadedFile = $_FILES['gpxFile'];
+// Handle file upload and URL processing
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $result = null;
     
-    // Check for upload errors
-    if ($uploadedFile['error'] !== UPLOAD_ERR_OK) {
-        echo json_encode(['error' => 'File upload failed']);
+    if (isset($_POST['gpxUrl']) && !empty($_POST['gpxUrl'])) {
+        $url = filter_var($_POST['gpxUrl'], FILTER_SANITIZE_URL);
+        
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            echo json_encode(['error' => 'Invalid URL provided']);
+            exit;
+        }
+        
+        // Verify URL points to a GPX file
+        $urlInfo = pathinfo($url);
+        if (strtolower($urlInfo['extension']) !== 'gpx') {
+            echo json_encode(['error' => 'URL must point to a GPX file']);
+            exit;
+        }
+        
+        // Download the file
+        $tempFile = tempnam(sys_get_temp_dir(), 'gpx_');
+        $gpxContent = @file_get_contents($url);
+        
+        if ($gpxContent === false) {
+            echo json_encode(['error' => 'Failed to download GPX file from URL']);
+            @unlink($tempFile); // Clean up temp file
+            exit;
+        }
+        
+        file_put_contents($tempFile, $gpxContent);
+        $result = parseGPX($tempFile);
+        @unlink($tempFile); // Clean up temp file
+    }else if (isset($_FILES['gpxFile'])) {
+        $uploadedFile = $_FILES['gpxFile'];
+        
+        // Check for upload errors
+        if ($uploadedFile['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['error' => 'File upload failed']);
+            exit;
+        }
+        
+        // Verify file type
+        $fileInfo = pathinfo($uploadedFile['name']);
+        if (strtolower($fileInfo['extension']) !== 'gpx') {
+            echo json_encode(['error' => 'Invalid file type. Please upload a GPX file']);
+            exit;
+        }
+        
+        $result = parseGPX($uploadedFile['tmp_name']);
+    } else {
+        echo json_encode(['error' => 'No file uploaded or URL provided']);
         exit;
     }
-    
-    // Verify file type
-    $fileInfo = pathinfo($uploadedFile['name']);
-    if (strtolower($fileInfo['extension']) !== 'gpx') {
-        echo json_encode(['error' => 'Invalid file type. Please upload a GPX file']);
-        exit;
-    }
-    
-    // Parse the GPX file
-    $result = parseGPX($uploadedFile['tmp_name']);
     
     // Set JSON content type header
     header('Content-Type: application/json');

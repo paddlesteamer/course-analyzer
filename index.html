@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>GPX Elevation Profile</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPX Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation"></script>
     <style>
@@ -38,6 +40,23 @@
         .descent {
             border-left: 4px solid #f44336;
         }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .input-group input {
+            width: 100%;
+            max-width: 400px;
+            padding: 8px;
+        }
+        .or-divider {
+            margin: 20px 0;
+            text-align: center;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -46,9 +65,22 @@
         
         <div class="upload-section">
             <h2>Upload GPX File</h2>
-            <form id="uploadForm">
-                <input type="file" name="gpxFile" accept=".gpx" required>
-                <button type="submit">Upload and Analyze</button>
+            <form id="gpxForm" method="POST" enctype="multipart/form-data">
+                <div class="input-group">
+                    <label for="gpxUrl">GPX File URL:</label>
+                    <input type="url" id="gpxUrl" name="gpxUrl" 
+                           placeholder="Enter GPX file URL" 
+                           value="https://analyzer.umuterdal.com/matheysins.gpx">
+                </div>
+
+                <div class="or-divider">- OR -</div>
+
+                <div class="input-group">
+                    <label for="gpxFile">Upload GPX File:</label>
+                    <input type="file" id="gpxFile" name="gpxFile" accept=".gpx">
+                </div>
+
+                <button type="submit">Analyze GPX</button>
             </form>
         </div>
 
@@ -62,31 +94,49 @@
         </div>
     </div>
 
+    <div id="results"></div>
+
     <script>
         let chart = null;
 
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+        document.getElementById('gpxForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const formData = new FormData(this);
             
-            fetch('parser.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
+            try {
+                const response = await fetch('parser.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
                 if (data.error) {
-                    alert(data.error);
-                    return;
+                    document.getElementById('results').innerHTML = `<p style="color: red">${data.error}</p>`;
+                } else {
+                    // Handle successful response
+                    document.getElementById('results').innerHTML = `
+                        <h3>Analysis Results:</h3>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    displayElevationProfile(data);
+                    displaySplits(data.splits);
                 }
-                displayElevationProfile(data);
-                displaySplits(data.splits);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error processing the file');
-            });
+            } catch (error) {
+                document.getElementById('results').innerHTML = `
+                    <p style="color: red">Error processing request: ${error.message}</p>
+                `;
+            }
+        });
+
+        // Clear file input when URL is entered and vice versa
+        document.getElementById('gpxUrl').addEventListener('input', function() {
+            document.getElementById('gpxFile').value = '';
+        });
+
+        document.getElementById('gpxFile').addEventListener('change', function() {
+            document.getElementById('gpxUrl').value = '';
         });
 
         function displayElevationProfile(data) {
